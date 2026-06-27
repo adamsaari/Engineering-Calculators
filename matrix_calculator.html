@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3×3 Matrix Calculator</title>
+  <style>
+    :root {
+      --bg:       #0d1117;
+      --surface:  #161b22;
+      --border:   #30363d;
+      --text:     #e6edf3;
+      --muted:    #8b949e;
+      --accent:   #38bdf8;
+      --green:    #4ade80;
+      --amber:    #fbbf24;
+      --error:    #f87171;
+      --radius:   10px;
+      --mono:     'JetBrains Mono', 'Fira Mono', 'Consolas', monospace;
+      --sans:     'Inter', system-ui, sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2.5rem 1rem 4rem;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    header h1 {
+      font-family: var(--mono);
+      font-size: clamp(1.6rem, 5vw, 2.6rem);
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: -0.02em;
+    }
+
+    header p {
+      color: var(--muted);
+      font-size: 0.85rem;
+      margin-top: 0.3rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      width: 100%;
+      max-width: 480px;
+      padding: 1.75rem;
+    }
+
+    .section-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 0.8rem;
+    }
+
+    /* ── Matrix input grid ── */
+    .matrix-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.5rem;
+      margin-bottom: 1.4rem;
+    }
+
+    .matrix-grid input {
+      background: var(--bg);
+      border: 1.5px solid var(--border);
+      border-radius: 6px;
+      padding: 0.6rem 0.4rem;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 1rem;
+      text-align: center;
+      width: 100%;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .matrix-grid input:focus { border-color: var(--accent); }
+    .matrix-grid input::placeholder { color: var(--border); }
+
+    /* Row labels beside the grid */
+    .grid-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 1.4rem;
+    }
+
+    .row-labels {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .row-label {
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      color: var(--muted);
+      height: 2.3rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 1.2rem;
+    }
+
+    .col-labels {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.5rem;
+      margin-bottom: 0.3rem;
+      padding-left: 1.7rem;
+    }
+
+    .col-label {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    /* ── Buttons ── */
+    .btn-row {
+      display: flex;
+      gap: 0.6rem;
+      margin-bottom: 1.4rem;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 0.65rem 1rem;
+      border: none;
+      border-radius: 6px;
+      font-family: var(--sans);
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+
+    .btn:active { transform: scale(0.97); }
+
+    .btn-primary { background: var(--accent); color: #0d1117; }
+    .btn-primary:hover { opacity: 0.9; }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--muted);
+      border: 1.5px solid var(--border);
+    }
+    .btn-secondary:hover { color: var(--text); border-color: var(--muted); }
+
+    /* ── Results ── */
+    .results { display: none; }
+    .results.visible { display: block; }
+
+    .result-block {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.1rem 1.25rem;
+      margin-bottom: 0.9rem;
+    }
+
+    .result-block .res-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.6rem;
+    }
+
+    /* Determinant display */
+    .det-value {
+      font-family: var(--mono);
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--amber);
+    }
+
+    .det-note {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-top: 0.3rem;
+    }
+
+    /* Matrix display */
+    .matrix-display {
+      display: inline-grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.35rem;
+    }
+
+    .matrix-display .cell {
+      font-family: var(--mono);
+      font-size: 0.95rem;
+      color: var(--green);
+      text-align: right;
+      padding: 0.15rem 0.4rem;
+      min-width: 4rem;
+    }
+
+    .error-msg {
+      color: var(--error);
+      font-size: 0.83rem;
+      margin-bottom: 0.8rem;
+      min-height: 1.2em;
+      display: none;
+    }
+
+    .error-msg.visible { display: block; }
+
+    /* Divider */
+    hr {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 1.2rem 0;
+    }
+
+    /* Formula hint */
+    .formula-hint {
+      font-size: 0.75rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .formula-hint code {
+      font-family: var(--mono);
+      color: var(--text);
+      background: var(--bg);
+      padding: 0.1rem 0.3rem;
+      border-radius: 4px;
+      font-size: 0.72rem;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>3×3 Matrix Calculator</h1>
+  <p>Determinant &amp; Transpose — No libraries</p>
+</header>
+
+<div class="card">
+
+  <div class="section-label">Enter your 3×3 matrix</div>
+
+  <div class="col-labels">
+    <span class="col-label">col 1</span>
+    <span class="col-label">col 2</span>
+    <span class="col-label">col 3</span>
+  </div>
+
+  <div class="grid-wrapper">
+    <div class="row-labels">
+      <span class="row-label">r1</span>
+      <span class="row-label">r2</span>
+      <span class="row-label">r3</span>
+    </div>
+    <div class="matrix-grid" id="matrixGrid">
+      <!-- 9 inputs generated by JS -->
+    </div>
+  </div>
+
+  <div class="error-msg" id="errorMsg">⚠ Please fill in all 9 cells with valid numbers.</div>
+
+  <div class="btn-row">
+    <button class="btn btn-primary" onclick="calculate()">Calculate</button>
+    <button class="btn btn-secondary" onclick="resetAll()">Reset</button>
+  </div>
+
+  <!-- Results -->
+  <div class="results" id="results">
+
+    <div class="result-block">
+      <div class="res-label">Determinant</div>
+      <div class="det-value" id="detValue"></div>
+      <div class="det-note" id="detNote"></div>
+    </div>
+
+    <div class="result-block">
+      <div class="res-label">Transpose</div>
+      <div class="matrix-display" id="transposeDisplay"></div>
+    </div>
+
+    <hr>
+
+    <div class="formula-hint">
+      <strong style="color: var(--text);">How it works</strong><br>
+      <strong>Determinant</strong> — cofactor expansion along row 1:<br>
+      <code>det = a(ei−fh) − b(di−fg) + c(dh−eg)</code><br><br>
+      <strong>Transpose</strong> — swap rows and columns:<br>
+      <code>T[j][i] = M[i][j]</code>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // ── Build the 9 input cells ──────────────────────────────────
+  const grid = document.getElementById('matrixGrid');
+  for (let i = 0; i < 9; i++) {
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.step = 'any';
+    input.placeholder = '0';
+    input.id = `cell_${i}`;
+    // Allow Enter key to trigger calculation
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') calculate(); });
+    grid.appendChild(input);
+  }
+
+  // ── Read matrix from inputs ──────────────────────────────────
+  function getMatrix() {
+    const m = [[], [], []];
+    for (let i = 0; i < 9; i++) {
+      const val = parseFloat(document.getElementById(`cell_${i}`).value);
+      if (isNaN(val)) return null;
+      m[Math.floor(i / 3)].push(val);
+    }
+    return m;
+  }
+
+  // ── Determinant via cofactor expansion along row 1 ──────────
+  function determinant(m) {
+    const [a, b, c] = m[0];
+    const [d, e, f] = m[1];
+    const [g, h, i] = m[2];
+
+    const minorA = e * i - f * h;   // 2×2 minor for 'a'
+    const minorB = d * i - f * g;   // 2×2 minor for 'b'
+    const minorC = d * h - e * g;   // 2×2 minor for 'c'
+
+    // Cofactor signs: +a, -b, +c
+    return a * minorA - b * minorB + c * minorC;
+  }
+
+  // ── Transpose: swap T[j][i] = M[i][j] ───────────────────────
+  function transpose(m) {
+    const t = [[0,0,0],[0,0,0],[0,0,0]];
+    for (let i = 0; i < 3; i++)
+      for (let j = 0; j < 3; j++)
+        t[j][i] = m[i][j];
+    return t;
+  }
+
+  // ── Format a number neatly ───────────────────────────────────
+  function fmt(n) {
+    if (Math.abs(n) >= 1e6 || (Math.abs(n) < 0.001 && n !== 0))
+      return n.toExponential(3);
+    return parseFloat(n.toPrecision(6)).toString();
+  }
+
+  // ── Main calculate ───────────────────────────────────────────
+  function calculate() {
+    const errorEl = document.getElementById('errorMsg');
+    const resultsEl = document.getElementById('results');
+
+    const m = getMatrix();
+    if (!m) {
+      errorEl.classList.add('visible');
+      resultsEl.classList.remove('visible');
+      return;
+    }
+    errorEl.classList.remove('visible');
+
+    // Determinant
+    const det = determinant(m);
+    document.getElementById('detValue').textContent = fmt(det);
+    document.getElementById('detNote').textContent =
+      det === 0
+        ? 'det = 0 → singular matrix (no inverse exists)'
+        : det > 0
+          ? 'Matrix is non-singular — an inverse exists.'
+          : 'Matrix is non-singular — an inverse exists (negative det).';
+
+    // Transpose
+    const t = transpose(m);
+    const dispEl = document.getElementById('transposeDisplay');
+    dispEl.innerHTML = '';
+    t.flat().forEach(val => {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      cell.textContent = fmt(val);
+      dispEl.appendChild(cell);
+    });
+
+    resultsEl.classList.add('visible');
+  }
+
+  // ── Reset ────────────────────────────────────────────────────
+  function resetAll() {
+    for (let i = 0; i < 9; i++)
+      document.getElementById(`cell_${i}`).value = '';
+    document.getElementById('errorMsg').classList.remove('visible');
+    document.getElementById('results').classList.remove('visible');
+    document.getElementById('cell_0').focus();
+  }
+</script>
+
+</body>
+</html>
