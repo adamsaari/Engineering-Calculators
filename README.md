@@ -1,4 +1,4 @@
-### 🛠️ Development & AI Co-Pilot Disclosure
+### Development & AI Co-Pilot Disclosure
 
 As a Mechanical Engineering student, my primary academic focus is on physical design, structural mechanics, and manufacturing systems rather than deep software development. 
 
