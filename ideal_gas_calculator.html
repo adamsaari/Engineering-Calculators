@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ideal Gas Law Calculator</title>
+  <style>
+    /* ── Design tokens ─────────────────────────────────────────────
+       Palette: deep navy bg, ice-white text, electric cyan accent,
+       muted slate for secondaries, warm amber for result highlight
+    ───────────────────────────────────────────────────────────────── */
+    :root {
+      --bg:        #0d1117;
+      --surface:   #161b22;
+      --border:    #30363d;
+      --text:      #e6edf3;
+      --muted:     #8b949e;
+      --accent:    #38bdf8;
+      --accent-dim:#0ea5e9;
+      --result-bg: #1a2332;
+      --result-hl: #fbbf24;
+      --error:     #f87171;
+      --radius:    10px;
+      --font-mono: 'JetBrains Mono', 'Fira Mono', 'Consolas', monospace;
+      --font-sans: 'Inter', system-ui, sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2.5rem 1rem 4rem;
+    }
+
+    /* ── Header ── */
+    header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+
+    .equation {
+      font-family: var(--font-mono);
+      font-size: clamp(2rem, 6vw, 3.5rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--accent);
+      line-height: 1;
+      margin-bottom: 0.4rem;
+    }
+
+    .equation span { color: var(--text); }
+
+    header p {
+      color: var(--muted);
+      font-size: 0.9rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    /* ── Card ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      width: 100%;
+      max-width: 540px;
+      padding: 2rem;
+    }
+
+    /* ── Step indicator ── */
+    .step-label {
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 0.6rem;
+    }
+
+    /* ── Variable grid ── */
+    .var-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .var-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.2rem;
+      padding: 1rem;
+      background: var(--bg);
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      color: var(--text);
+      font-family: inherit;
+    }
+
+    .var-btn:hover { border-color: var(--accent-dim); background: #131920; }
+
+    .var-btn.selected {
+      border-color: var(--accent);
+      background: #0d1f2e;
+    }
+
+    .var-btn .sym {
+      font-family: var(--font-mono);
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--accent);
+      line-height: 1;
+    }
+
+    .var-btn .name {
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    /* ── Inputs ── */
+    .inputs-section { margin-bottom: 1.5rem; }
+
+    .input-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.85rem;
+    }
+
+    .input-row label {
+      font-family: var(--font-mono);
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--accent);
+      width: 1.4rem;
+      flex-shrink: 0;
+      text-align: center;
+    }
+
+    .input-row input {
+      flex: 1;
+      background: var(--bg);
+      border: 1.5px solid var(--border);
+      border-radius: 6px;
+      padding: 0.55rem 0.75rem;
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .input-row input:focus { border-color: var(--accent); }
+    .input-row input::placeholder { color: var(--muted); }
+
+    .input-row select {
+      background: var(--bg);
+      border: 1.5px solid var(--border);
+      border-radius: 6px;
+      padding: 0.55rem 0.5rem;
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .input-row select:focus { border-color: var(--accent); }
+
+    /* ── Buttons ── */
+    .btn-row {
+      display: flex;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 0.7rem 1rem;
+      border: none;
+      border-radius: 6px;
+      font-family: var(--font-sans);
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+
+    .btn:active { transform: scale(0.98); }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #0d1117;
+    }
+
+    .btn-primary:hover { opacity: 0.9; }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--muted);
+      border: 1.5px solid var(--border);
+    }
+
+    .btn-secondary:hover { color: var(--text); border-color: var(--muted); }
+
+    /* ── Result ── */
+    .result-box {
+      background: var(--result-bg);
+      border: 1.5px solid var(--accent);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+      display: none;
+    }
+
+    .result-box.visible { display: block; }
+
+    .result-box .res-label {
+      font-size: 0.72rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      font-weight: 600;
+      margin-bottom: 0.4rem;
+    }
+
+    .result-value {
+      font-family: var(--font-mono);
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--result-hl);
+      line-height: 1.1;
+    }
+
+    .result-unit {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-top: 0.2rem;
+    }
+
+    .error-msg {
+      color: var(--error);
+      font-size: 0.85rem;
+      margin-top: 0.5rem;
+      min-height: 1.2em;
+    }
+
+    /* ── Info footer ── */
+    .info {
+      margin-top: 1.5rem;
+      padding-top: 1.25rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.78rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .info strong { color: var(--text); }
+
+    /* ── Responsive ── */
+    @media (max-width: 420px) {
+      .var-grid { grid-template-columns: 1fr 1fr; }
+      .result-value { font-size: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="equation">PV<span> = </span>nRT</div>
+  <p>Ideal Gas Law Calculator</p>
+</header>
+
+<div class="card">
+
+  <!-- Step 1: pick unknown -->
+  <div class="step-label">Step 1 — Select the unknown variable</div>
+  <div class="var-grid">
+    <button class="var-btn" data-var="P" onclick="selectUnknown('P')">
+      <span class="sym">P</span>
+      <span class="name">Pressure</span>
+    </button>
+    <button class="var-btn" data-var="V" onclick="selectUnknown('V')">
+      <span class="sym">V</span>
+      <span class="name">Volume</span>
+    </button>
+    <button class="var-btn" data-var="n" onclick="selectUnknown('n')">
+      <span class="sym">n</span>
+      <span class="name">Amount (mol)</span>
+    </button>
+    <button class="var-btn" data-var="T" onclick="selectUnknown('T')">
+      <span class="sym">T</span>
+      <span class="name">Temperature</span>
+    </button>
+  </div>
+
+  <!-- Step 2: enter known values -->
+  <div class="inputs-section" id="inputsSection" style="display:none;">
+    <div class="step-label">Step 2 — Enter the three known values</div>
+    <div id="inputRows"></div>
+  </div>
+
+  <!-- Buttons -->
+  <div class="btn-row" id="btnRow" style="display:none;">
+    <button class="btn btn-primary" onclick="calculate()">Calculate</button>
+    <button class="btn btn-secondary" onclick="resetAll()">Reset</button>
+  </div>
+
+  <!-- Result -->
+  <div class="result-box" id="resultBox">
+    <div class="res-label">Result</div>
+    <div class="result-value" id="resultValue"></div>
+    <div class="result-unit" id="resultUnit"></div>
+    <div class="error-msg" id="errorMsg"></div>
+  </div>
+
+  <!-- Info -->
+  <div class="info">
+    <strong>R</strong> = 8.314 J·mol⁻¹·K⁻¹ &nbsp;|&nbsp;
+    <strong>P</strong> in Pa &nbsp;|&nbsp;
+    <strong>V</strong> in m³ &nbsp;|&nbsp;
+    <strong>n</strong> in mol &nbsp;|&nbsp;
+    <strong>T</strong> in K<br>
+    Unit conversions are applied automatically before solving.
+  </div>
+
+</div>
+
+<script>
+  const R = 8.314; // J·mol⁻¹·K⁻¹
+
+  // All variables and their unit options
+  const vars = {
+    P: {
+      label: 'P', name: 'Pressure',
+      units: [
+        { label: 'Pa',   toSI: v => v,         fromSI: v => v },
+        { label: 'kPa',  toSI: v => v * 1e3,   fromSI: v => v / 1e3 },
+        { label: 'atm',  toSI: v => v * 101325, fromSI: v => v / 101325 },
+        { label: 'bar',  toSI: v => v * 1e5,    fromSI: v => v / 1e5 },
+        { label: 'mmHg', toSI: v => v * 133.322,fromSI: v => v / 133.322 },
+        { label: 'psi',  toSI: v => v * 6894.76,fromSI: v => v / 6894.76 },
+      ]
+    },
+    V: {
+      label: 'V', name: 'Volume',
+      units: [
+        { label: 'm³',  toSI: v => v,      fromSI: v => v },
+        { label: 'L',   toSI: v => v/1000, fromSI: v => v * 1000 },
+        { label: 'mL',  toSI: v => v/1e6,  fromSI: v => v * 1e6 },
+        { label: 'cm³', toSI: v => v/1e6,  fromSI: v => v * 1e6 },
+      ]
+    },
+    n: {
+      label: 'n', name: 'Amount',
+      units: [
+        { label: 'mol',  toSI: v => v,       fromSI: v => v },
+        { label: 'mmol', toSI: v => v/1000,  fromSI: v => v * 1000 },
+        { label: 'kmol', toSI: v => v * 1000,fromSI: v => v / 1000 },
+      ]
+    },
+    T: {
+      label: 'T', name: 'Temperature',
+      units: [
+        { label: 'K',  toSI: v => v,         fromSI: v => v },
+        { label: '°C', toSI: v => v + 273.15,fromSI: v => v - 273.15 },
+        { label: '°F', toSI: v => (v - 32) * 5/9 + 273.15, fromSI: v => (v - 273.15) * 9/5 + 32 },
+      ]
+    }
+  };
+
+  let unknown = null;
+
+  function selectUnknown(v) {
+    unknown = v;
+    document.querySelectorAll('.var-btn').forEach(b => {
+      b.classList.toggle('selected', b.dataset.var === v);
+    });
+    buildInputs();
+    document.getElementById('inputsSection').style.display = 'block';
+    document.getElementById('btnRow').style.display = 'flex';
+    hideResult();
+  }
+
+  function buildInputs() {
+    const container = document.getElementById('inputRows');
+    container.innerHTML = '';
+    const known = Object.keys(vars).filter(k => k !== unknown);
+
+    known.forEach(key => {
+      const v = vars[key];
+      const row = document.createElement('div');
+      row.className = 'input-row';
+
+      const label = document.createElement('label');
+      label.textContent = v.label;
+
+      const input = document.createElement('input');
+      input.type = 'number';
+      input.id = `input_${key}`;
+      input.placeholder = v.name;
+      input.step = 'any';
+      input.addEventListener('keydown', e => { if (e.key === 'Enter') calculate(); });
+
+      const select = document.createElement('select');
+      select.id = `unit_${key}`;
+      v.units.forEach((u, i) => {
+        const opt = document.createElement('option');
+        opt.value = i;
+        opt.textContent = u.label;
+        // Sensible defaults
+        if ((key === 'P' && u.label === 'atm') ||
+            (key === 'V' && u.label === 'L') ||
+            (key === 'T' && u.label === 'K') ||
+            (key === 'n' && u.label === 'mol')) opt.selected = true;
+        select.appendChild(opt);
+      });
+
+      row.appendChild(label);
+      row.appendChild(input);
+      row.appendChild(select);
+      container.appendChild(row);
+    });
+  }
+
+  function getInputSI(key) {
+    const raw = parseFloat(document.getElementById(`input_${key}`).value);
+    if (isNaN(raw)) return null;
+    const unitIdx = parseInt(document.getElementById(`unit_${key}`).value);
+    return vars[key].units[unitIdx].toSI(raw);
+  }
+
+  function calculate() {
+    hideResult();
+
+    const known = Object.keys(vars).filter(k => k !== unknown);
+    const values = {};
+    for (const k of known) {
+      const v = getInputSI(k);
+      if (v === null) return showError(`Please enter a value for ${vars[k].name}.`);
+      values[k] = v;
+    }
+
+    // Solve for unknown in SI
+    let resultSI;
+    if (unknown === 'P') {
+      resultSI = (values.n * R * values.T) / values.V;
+    } else if (unknown === 'V') {
+      resultSI = (values.n * R * values.T) / values.P;
+    } else if (unknown === 'n') {
+      resultSI = (values.P * values.V) / (R * values.T);
+    } else if (unknown === 'T') {
+      resultSI = (values.P * values.V) / (values.n * R);
+    }
+
+    if (!isFinite(resultSI) || resultSI <= 0) {
+      return showError('Invalid input: result must be a positive finite number.');
+    }
+
+    // Display in first (default SI) unit of unknown OR keep SI
+    const displayUnit = vars[unknown].units[0];
+    const resultDisplay = displayUnit.fromSI(resultSI);
+    const formatted = formatNumber(resultDisplay);
+
+    document.getElementById('resultValue').textContent =
+      `${vars[unknown].label} = ${formatted}`;
+    document.getElementById('resultUnit').textContent = displayUnit.label;
+    document.getElementById('resultBox').classList.add('visible');
+  }
+
+  function formatNumber(n) {
+    if (Math.abs(n) >= 1e6 || (Math.abs(n) < 0.001 && n !== 0)) {
+      return n.toExponential(4);
+    }
+    return parseFloat(n.toPrecision(6)).toString();
+  }
+
+  function showError(msg) {
+    document.getElementById('errorMsg').textContent = msg;
+    document.getElementById('resultBox').classList.add('visible');
+  }
+
+  function hideResult() {
+    document.getElementById('resultBox').classList.remove('visible');
+    document.getElementById('resultValue').textContent = '';
+    document.getElementById('resultUnit').textContent = '';
+    document.getElementById('errorMsg').textContent = '';
+  }
+
+  function resetAll() {
+    unknown = null;
+    document.querySelectorAll('.var-btn').forEach(b => b.classList.remove('selected'));
+    document.getElementById('inputsSection').style.display = 'none';
+    document.getElementById('btnRow').style.display = 'none';
+    hideResult();
+  }
+</script>
+</body>
+</html>
