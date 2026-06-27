@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3D Vector Mechanics Calculator</title>
+  <style>
+    /* ── Design tokens ──────────────────────────────────────────
+       Blueprint aesthetic: engineering graph paper feel.
+       Dark navy base, fine grid lines, bright white notation,
+       two accent colours: electric blue (vectors) and orange (results).
+       Signature element: faint grid background evoking engineering paper.
+    ─────────────────────────────────────────────────────────── */
+    :root {
+      --bg:         #0b0f1a;
+      --grid-line:  rgba(56, 96, 160, 0.12);
+      --surface:    #111827;
+      --surface2:   #1a2236;
+      --border:     #243050;
+      --text:       #dce8ff;
+      --muted:      #6b82aa;
+      --blue:       #60a5fa;
+      --orange:     #fb923c;
+      --green:      #34d399;
+      --purple:     #a78bfa;
+      --error:      #f87171;
+      --radius:     10px;
+      --mono:       'JetBrains Mono', 'Fira Mono', 'Consolas', monospace;
+      --sans:       'Inter', system-ui, sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg);
+      /* Signature: engineering graph-paper grid */
+      background-image:
+        linear-gradient(var(--grid-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+      background-size: 32px 32px;
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2.5rem 1rem 5rem;
+    }
+
+    /* ── Header ── */
+    header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .course-tag {
+      display: inline-block;
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      color: var(--blue);
+      background: rgba(96, 165, 250, 0.1);
+      border: 1px solid rgba(96, 165, 250, 0.25);
+      border-radius: 4px;
+      padding: 0.2rem 0.6rem;
+      margin-bottom: 0.7rem;
+    }
+
+    header h1 {
+      font-family: var(--mono);
+      font-size: clamp(1.4rem, 4.5vw, 2.2rem);
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+    }
+
+    header h1 span { color: var(--blue); }
+
+    header p {
+      color: var(--muted);
+      font-size: 0.82rem;
+      margin-top: 0.4rem;
+      letter-spacing: 0.03em;
+    }
+
+    /* ── Card ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      width: 100%;
+      max-width: 520px;
+      padding: 1.75rem;
+    }
+
+    /* ── Vector input block ── */
+    .vector-block {
+      margin-bottom: 1.5rem;
+    }
+
+    .vector-header {
+      display: flex;
+      align-items: baseline;
+      gap: 0.6rem;
+      margin-bottom: 0.8rem;
+    }
+
+    .vector-sym {
+      font-family: var(--mono);
+      font-size: 1.3rem;
+      font-weight: 700;
+    }
+
+    .vec-r { color: var(--blue); }
+    .vec-f { color: var(--orange); }
+
+    .vector-desc {
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+
+    /* Three-column component inputs */
+    .component-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.5rem;
+    }
+
+    .component-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+    }
+
+    .component-wrap label {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+    }
+
+    .component-wrap input {
+      background: var(--bg);
+      border: 1.5px solid var(--border);
+      border-radius: 6px;
+      padding: 0.55rem 0.5rem;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 0.95rem;
+      text-align: center;
+      width: 100%;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .component-wrap input:focus { border-color: var(--blue); }
+    .component-wrap input::placeholder { color: var(--border); }
+
+    /* ── Divider ── */
+    hr { border: none; border-top: 1px solid var(--border); margin: 1.3rem 0; }
+
+    /* ── Buttons ── */
+    .btn-row {
+      display: flex;
+      gap: 0.6rem;
+      margin-bottom: 0;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 0.68rem 1rem;
+      border: none;
+      border-radius: 6px;
+      font-family: var(--sans);
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+
+    .btn:active { transform: scale(0.97); }
+
+    .btn-primary { background: var(--blue); color: #0b0f1a; }
+    .btn-primary:hover { opacity: 0.88; }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--muted);
+      border: 1.5px solid var(--border);
+    }
+    .btn-secondary:hover { color: var(--text); border-color: var(--muted); }
+
+    /* ── Error ── */
+    .error-msg {
+      color: var(--error);
+      font-size: 0.82rem;
+      margin-top: 0.9rem;
+      display: none;
+    }
+    .error-msg.visible { display: block; }
+
+    /* ── Results ── */
+    .results {
+      margin-top: 1.4rem;
+      display: none;
+      flex-direction: column;
+      gap: 0.85rem;
+    }
+    .results.visible { display: flex; }
+
+    .result-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem 1.2rem;
+    }
+
+    .result-card .res-tag {
+      font-size: 0.67rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 0.45rem;
+    }
+
+    .result-card .res-formula {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .result-card .res-value {
+      font-family: var(--mono);
+      font-size: 1.5rem;
+      font-weight: 700;
+      line-height: 1.1;
+    }
+
+    .res-value-scalar { color: var(--green); }
+    .res-value-vector { color: var(--purple); }
+    .res-value-dot    { color: var(--orange); }
+
+    .res-units {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-top: 0.25rem;
+    }
+
+    /* ── Formula reference ── */
+    .ref-block {
+      margin-top: 1.5rem;
+      padding-top: 1.25rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.74rem;
+      color: var(--muted);
+      line-height: 1.75;
+    }
+
+    .ref-block strong { color: var(--text); }
+    .ref-block code {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--blue);
+      background: rgba(96,165,250,0.08);
+      padding: 0.1rem 0.3rem;
+      border-radius: 3px;
+    }
+
+    @media (max-width: 400px) {
+      .result-card .res-value { font-size: 1.15rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="course-tag">PHYS 115 — Classical Mechanics</div>
+  <h1><span>3D</span> Vector Mechanics<br>Calculator</h1>
+  <p>Position vector <b>r</b> · Force vector <b>F</b> · No external libraries</p>
+</header>
+
+<div class="card">
+
+  <!-- Position Vector r -->
+  <div class="vector-block">
+    <div class="vector-header">
+      <span class="vector-sym vec-r">r⃗</span>
+      <span class="vector-desc">Position Vector (m)</span>
+    </div>
+    <div class="component-row">
+      <div class="component-wrap">
+        <label>rₓ</label>
+        <input type="number" step="any" placeholder="0" id="rx" />
+      </div>
+      <div class="component-wrap">
+        <label>r_y</label>
+        <input type="number" step="any" placeholder="0" id="ry" />
+      </div>
+      <div class="component-wrap">
+        <label>r_z</label>
+        <input type="number" step="any" placeholder="0" id="rz" />
+      </div>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- Force Vector F -->
+  <div class="vector-block">
+    <div class="vector-header">
+      <span class="vector-sym vec-f">F⃗</span>
+      <span class="vector-desc">Force Vector (N)</span>
+    </div>
+    <div class="component-row">
+      <div class="component-wrap">
+        <label>Fₓ</label>
+        <input type="number" step="any" placeholder="0" id="fx" />
+      </div>
+      <div class="component-wrap">
+        <label>F_y</label>
+        <input type="number" step="any" placeholder="0" id="fy" />
+      </div>
+      <div class="component-wrap">
+        <label>F_z</label>
+        <input type="number" step="any" placeholder="0" id="fz" />
+      </div>
+    </div>
+  </div>
+
+  <hr>
+
+  <div class="btn-row">
+    <button class="btn btn-primary" onclick="calculate()">Calculate</button>
+    <button class="btn btn-secondary" onclick="resetAll()">Reset</button>
+  </div>
+
+  <div class="error-msg" id="errorMsg">⚠ Please fill in all 6 components with valid numbers.</div>
+
+  <!-- Results -->
+  <div class="results" id="results">
+
+    <!-- Magnitude of F -->
+    <div class="result-card">
+      <div class="res-tag" style="color: var(--green);">Force Magnitude  |F⃗|</div>
+      <div class="res-formula">
+        <!-- Pythagorean theorem extended to 3D -->
+        |F| = √(Fx² + Fy² + Fz²)
+      </div>
+      <div class="res-value res-value-scalar" id="resMag"></div>
+      <div class="res-units">Newtons (N)</div>
+    </div>
+
+    <!-- Dot Product -->
+    <div class="result-card">
+      <div class="res-tag" style="color: var(--orange);">Dot Product  r⃗ · F⃗</div>
+      <div class="res-formula">
+        <!-- Sum of component-wise products -->
+        r · F = rx·Fx + ry·Fy + rz·Fz
+      </div>
+      <div class="res-value res-value-dot" id="resDot"></div>
+      <div class="res-units">N·m (work / energy scalar)</div>
+    </div>
+
+    <!-- Cross Product / Moment -->
+    <div class="result-card">
+      <div class="res-tag" style="color: var(--purple);">Cross Product  M⃗ = r⃗ × F⃗</div>
+      <div class="res-formula">
+        <!-- 3×3 determinant expansion -->
+        Mx = ry·Fz − rz·Fy<br>
+        My = rz·Fx − rx·Fz<br>
+        Mz = rx·Fy − ry·Fx
+      </div>
+      <div class="res-value res-value-vector" id="resCross"></div>
+      <div class="res-units">N·m (moment / torque vector)</div>
+    </div>
+
+  </div>
+
+  <!-- Formula reference -->
+  <div class="ref-block">
+    <strong>Quick reference</strong><br>
+    <code>|F|</code> — magnitude via 3D Pythagorean theorem<br>
+    <code>r · F</code> — scalar; zero means vectors are perpendicular<br>
+    <code>r × F</code> — moment vector; its magnitude = |r||F|sin θ<br>
+    Direction of <code>M</code> follows the right-hand rule
+  </div>
+
+</div>
+
+<script>
+  // Attach Enter-key shortcut to all inputs
+  document.querySelectorAll('input').forEach(inp => {
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') calculate(); });
+  });
+
+  // Helper: read a number from an input by id
+  function val(id) {
+    return parseFloat(document.getElementById(id).value);
+  }
+
+  // Helper: format a number cleanly
+  function fmt(n) {
+    if (!isFinite(n)) return '—';
+    if (Math.abs(n) >= 1e5 || (Math.abs(n) < 0.001 && n !== 0))
+      return n.toExponential(3);
+    return parseFloat(n.toPrecision(6)).toString();
+  }
+
+  function calculate() {
+    const errorEl  = document.getElementById('errorMsg');
+    const resultsEl = document.getElementById('results');
+
+    // Read all six components
+    const rx = val('rx'), ry = val('ry'), rz = val('rz');
+    const fx = val('fx'), fy = val('fy'), fz = val('fz');
+
+    // Validate
+    if ([rx, ry, rz, fx, fy, fz].some(v => isNaN(v))) {
+      errorEl.classList.add('visible');
+      resultsEl.classList.remove('visible');
+      return;
+    }
+    errorEl.classList.remove('visible');
+
+    // ── 1. Magnitude of F ───────────────────────────────────
+    // |F| = sqrt(Fx² + Fy² + Fz²)   [3D Pythagorean theorem]
+    const mag = Math.sqrt(fx*fx + fy*fy + fz*fz);
+
+    // ── 2. Dot Product ──────────────────────────────────────
+    // r · F = rx·Fx + ry·Fy + rz·Fz   [sum of component products]
+    const dot = rx*fx + ry*fy + rz*fz;
+
+    // ── 3. Cross Product  M = r × F ─────────────────────────
+    // Expanding the 3×3 determinant with unit vectors i, j, k:
+    //   Mx = ry·Fz − rz·Fy
+    //   My = rz·Fx − rx·Fz
+    //   Mz = rx·Fy − ry·Fx
+    const mx = ry*fz - rz*fy;
+    const my = rz*fx - rx*fz;
+    const mz = rx*fy - ry*fx;
+
+    // ── Display results ─────────────────────────────────────
+    document.getElementById('resMag').textContent  = `${fmt(mag)} N`;
+
+    document.getElementById('resDot').textContent  = `${fmt(dot)} N·m`;
+
+    document.getElementById('resCross').textContent =
+      `( ${fmt(mx)} î,  ${fmt(my)} ĵ,  ${fmt(mz)} k̂ ) N·m`;
+
+    resultsEl.classList.add('visible');
+  }
+
+  function resetAll() {
+    ['rx','ry','rz','fx','fy','fz'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    document.getElementById('errorMsg').classList.remove('visible');
+    document.getElementById('results').classList.remove('visible');
+    document.getElementById('rx').focus();
+  }
+</script>
+
+</body>
+</html>
